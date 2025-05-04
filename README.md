@@ -1,16 +1,16 @@
 # sway-resize
 
-`sway-resize` is a utility to help resize windows visually on Sway with the use of guidelines.
+`sway-resize` is a utility to help resize windows visually on Sway with the use of guiding lines.
 
 [demo.webm](https://github.com/user-attachments/assets/dd4bd7a6-8e15-4b76-a61b-9ebe7b247d61)
 
 ## Usage
 
 ```
-sway-resize -g GUIDELINES
+sway-resize -g GUIDING_LINES
 ```
 
-`GUIDELINES` is a list of guidelines, each item has the `<symbol>:<direction>:<resize value>` format, e.g. `a:h:+50` will create a guideline with the symbol `a`, the horizontal direction, and with a relative increase in size of 50px. `<direction>` can be either `h` or `v` for the horizontal and vertical directions respectively. `<resize value>` can be on of the following format:
+`GUIDING_LINES` is a list of guiding lines to generate. Each item has the `<symbol>:<direction>:<resize value>` format, e.g. `a:h:+50` will create a guiding line with the symbol `a`, the horizontal direction, and with a relative increase in size of 50px. `<direction>` can be either `h` or `v` for the horizontal and vertical directions respectively. `<resize value>` can be on of the following format:
 
 | Format | Example | Description |
 | --- | --- | --- |
