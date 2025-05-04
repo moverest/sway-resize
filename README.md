@@ -38,6 +38,14 @@ meson build
 meson compile -C build
 ```
 
+## Bindings
+
+Here's an example of binding:
+
+```
+bindsym $mod+r exec sway-resize -g 'a:h:+32 b:h:+64 c:h:+128 d:h:+256 e:h:+512 f:v:+32 g:v:+64 h:v:+128 i:v:+256 j:v:+512 k:h:-32 l:h:-64 m:h:-128 n:h:-256 o:h:-512 p:v:-32 q:v:-64 l:v:-128 m:v:-256 n:v:-512'
+```
+
 ## Dependencies
 
 - [`xkbcommon`](https://xkbcommon.org)
