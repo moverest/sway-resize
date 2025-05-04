@@ -2,6 +2,8 @@
 
 `sway-resize` is a utility to help resize windows more visually on Sway with the use of guidelines.
 
+[demo.webm](https://github.com/user-attachments/assets/dd4bd7a6-8e15-4b76-a61b-9ebe7b247d61)
+
 ## Usage
 
 ```
