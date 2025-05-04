@@ -36,6 +36,7 @@ The program can be built from sources with:
 ```bash
 meson build
 meson compile -C build
+meson install -C build
 ```
 
 ## Bindings
