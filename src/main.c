@@ -1,15 +1,18 @@
 #include "fractional-scale-v1-client-protocol.h"
 #include "log.h"
+#include "render.h"
+#include "resize_params.h"
 #include "state.h"
 #include "surface_buffer.h"
-#include "utils.h"
-#include "utils_cairo.h"
+#include "sway_ipc.h"
+#include "sway_win.h"
 #include "viewporter-client-protocol.h"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "xdg-output-unstable-v1-client-protocol.h"
 
 #include <cairo/cairo.h>
 #include <getopt.h>
+#include <jansson.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
@@ -43,8 +46,7 @@ static void send_frame(struct state *state) {
     cairo_identity_matrix(cairo);
     cairo_scale(cairo, scale_120 / 120.0, scale_120 / 120.0);
 
-    cairo_set_source_u32(cairo, 0x770000aa);
-    cairo_paint(cairo);
+    render(state, cairo);
 
     wl_surface_set_buffer_scale(state->wl_surface, 1);
 
@@ -131,15 +133,38 @@ static void handle_keyboard_key(
     void *data, struct wl_keyboard *keyboard, uint32_t serial, uint32_t time,
     uint32_t key, uint32_t key_state
 ) {
-    struct seat        *seat = data;
-    char                text[64];
+    struct seat  *seat  = data;
+    struct state *state = seat->state;
+    char          text[64];
+
     const xkb_keycode_t key_code = key + 8;
     const xkb_keysym_t  key_sym =
         xkb_state_key_get_one_sym(seat->xkb_state, key_code);
     xkb_keysym_to_utf8(key_sym, text, sizeof(text));
 
     if (key_state == WL_KEYBOARD_KEY_STATE_PRESSED) {
-        seat->state->running = false;
+        if (key_sym == XKB_KEY_Escape) {
+            state->running = false;
+        }
+
+        if (text[0] == '\0') {
+            return;
+        }
+
+        uint32_t rune;
+        str_to_rune(text, &rune);
+
+        for (int i = 0; i < state->num_resize_params; i++) {
+            struct resize_parameter *param = &state->resize_params[i];
+            if (!param->applicable) {
+                continue;
+            }
+
+            if (param->symbol == rune) {
+                state->selected_resize = i;
+                state->running         = false;
+            }
+        }
     }
 }
 
@@ -418,7 +443,8 @@ const struct wp_fractional_scale_v1_listener fractional_scale_listener = {
     .preferred_scale = fractional_scale_preferred,
 };
 
-static struct output *find_output_by_name(struct state *state, char *name) {
+static struct output *
+find_output_by_name(struct state *state, const char *name) {
     struct output *output;
     wl_list_for_each (output, &state->outputs, link) {
         if (strcmp(output->name, name) == 0) {
@@ -455,18 +481,21 @@ int main(int argc, char **argv) {
         .fractional_scale_mgr = NULL,
         .running              = true,
         .scale_120            = 0,
+        .selected_resize      = -1,
     };
 
     static struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
         {"help-config", no_argument, 0, 'H'},
         {"version", no_argument, 0, 'v'},
+        {"guides", required_argument, 0, 'g'},
     };
 
-    int option_char  = 0;
-    int option_index = 0;
+    char *guides_string = NULL;
+    int   option_char   = 0;
+    int   option_index  = 0;
     while ((option_char =
-                getopt_long(argc, argv, "hv", long_options, &option_index)) !=
+                getopt_long(argc, argv, "hvg:", long_options, &option_index)) !=
            EOF) {
         switch (option_char) {
         case 'h':
@@ -477,6 +506,10 @@ int main(int argc, char **argv) {
             print_version();
             return 0;
 
+        case 'g':
+            guides_string = strdup(optarg);
+            break;
+
         default:
             LOG_ERR("Unknown argument.");
             return 1;
@@ -485,6 +518,49 @@ int main(int argc, char **argv) {
 
     wl_list_init(&state.outputs);
     wl_list_init(&state.seats);
+
+    if (guides_string == NULL) {
+        LOG_ERR("Guides need to be set with -g.");
+        return 1;
+    }
+
+    state.num_resize_params =
+        load_resize_parameters(&state.resize_params, guides_string);
+    free(guides_string);
+
+    if (state.num_resize_params < 0) {
+        LOG_ERR("Could not load guides.");
+        return 1;
+    }
+
+    int sway_ipc_socket = sway_ipc_open_socket();
+    if (sway_ipc_socket < 0) {
+        LOG_ERR("Could not open Sway socket.");
+        return 1;
+    }
+
+    sway_ipc_send(sway_ipc_socket, SWAY_MSG_GET_TREE, "", 0);
+    struct sway_ipc_msg *sway_tree_msg = sway_ipc_recv(sway_ipc_socket);
+    if (sway_tree_msg == NULL) {
+        LOG_ERR("Could not receive tree message.");
+        return 1;
+    }
+
+    json_error_t error;
+    json_t      *sway_tree = json_loads(sway_tree_msg->payload, 0, &error);
+    if (sway_tree == NULL) {
+        LOG_ERR("Could not parse tree.");
+        return 1;
+    }
+
+    free(sway_tree_msg);
+
+    int err = find_focused_window(&state.focused_window, sway_tree);
+    if (err) {
+        LOG_ERR("Could not find focused window.");
+        return 1;
+    }
+    json_decref(sway_tree);
 
     state.wl_display = wl_display_connect(NULL);
     if (state.wl_display == NULL) {
@@ -532,12 +608,20 @@ int main(int argc, char **argv) {
     // home row keys.
     wl_display_roundtrip(state.wl_display);
 
-    state.current_output = find_output_by_name(&state, "eDP-1");
+    state.current_output =
+        find_output_by_name(&state, state.focused_window.output);
 
     if (!state.current_output) {
-        LOG_ERR("Could not find output '%s'.", "eDP-1");
+        LOG_ERR("Could not find output '%s'.", state.focused_window.output);
         return 1;
     }
+
+    log_focused_window(&state.focused_window);
+
+    resize_parameters_compute_guides(
+        state.resize_params, state.num_resize_params, &state.focused_window
+    );
+    log_resize_params(state.resize_params, state.num_resize_params);
 
     surface_buffer_pool_init(&state.surface_buffer_pool);
 
@@ -599,6 +683,30 @@ int main(int argc, char **argv) {
     zwlr_layer_shell_v1_destroy(state.wl_layer_shell);
 
     wl_display_disconnect(state.wl_display);
+
+    if (state.focused_window.output != NULL) {
+        free((void *)state.focused_window.output);
+    }
+
+    if (state.selected_resize != -1) {
+        char cmd[256];
+        snprintf(
+            cmd, sizeof(cmd) - 1, "resize set %s %dpx",
+            state.resize_params[state.selected_resize].direction ==
+                    RESIZE_VERTICAL
+                ? "height"
+                : "width",
+            state.resize_params[state.selected_resize].size
+        );
+        cmd[sizeof(cmd) - 1] = '\0';
+
+        sway_ipc_send(sway_ipc_socket, SWAY_MSG_RUN_COMMAND, cmd, strlen(cmd));
+        struct sway_ipc_msg *res = sway_ipc_recv(sway_ipc_socket);
+        puts(res->payload);
+        free(res);
+    }
+
+    close(sway_ipc_socket);
 
     return 0;
 }

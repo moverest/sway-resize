@@ -23,4 +23,6 @@ int str_to_rune(char *s, uint32_t *rune);
 // If not found, return < 0.
 int str_index(char *s, uint32_t rune);
 
+int rune_to_str(uint32_t rune, char *s);
+
 #endif

@@ -2,8 +2,8 @@
 #define __STATE_H_INCLUDED__
 
 #include "fractional-scale-v1-client-protocol.h"
+#include "resize_params.h"
 #include "surface_buffer.h"
-#include "utils.h"
 #include "viewporter-client-protocol.h"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 
@@ -58,6 +58,10 @@ struct state {
     uint32_t                               surface_width;
     bool                                   running;
     bool                                   surface_configured;
+    struct resize_parameter               *resize_params;
+    int                                    num_resize_params;
+    struct focused_window                  focused_window;
+    int                                    selected_resize;
 };
 
 #endif

@@ -1,6 +1,9 @@
 #include "utils.h"
 
+#include "log.h"
+
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 int min(int a, int b) {
@@ -51,6 +54,32 @@ int str_to_rune(char *str, uint32_t *rune) {
 
     *rune = value;
     return size;
+}
+
+int rune_to_str(uint32_t rune, char *s) {
+    if (rune <= 0x7f) {
+        s[0] = rune;
+        s[1] = '\0';
+        return 1;
+    }
+
+    if (rune <= 0x07ff) {
+        s[0] = 0b11000000 | ((rune >> 6) & 0b00111111);
+        s[1] = 0b10000000 | (rune & 0b00111111);
+        s[2] = '\0';
+
+        return 2;
+    }
+
+    if (rune <= 0xffff) {
+        LOG_ERR("TODO");
+        exit(1);
+    } else {
+        LOG_ERR("TODO");
+        exit(1);
+    }
+
+    return -1;
 }
 
 int str_index(char *s, uint32_t rune) {
