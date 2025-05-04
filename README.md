@@ -10,7 +10,7 @@
 sway-resize -g GUIDELINES
 ```
 
-`GUIDE_LINES` is a list of guidelines, each item has the `<symbol>:<direction>:<resize value>` format, e.g. `a:h:+50` will create a guideline with the symbol `a`, the horizontal direction, and with a relative increase in size of 50px. `<direction>` can be either `h` or `v` for the horizontal and vertical directions respectively. `<resize value>` can be on of the following format:
+`GUIDELINES` is a list of guidelines, each item has the `<symbol>:<direction>:<resize value>` format, e.g. `a:h:+50` will create a guideline with the symbol `a`, the horizontal direction, and with a relative increase in size of 50px. `<direction>` can be either `h` or `v` for the horizontal and vertical directions respectively. `<resize value>` can be on of the following format:
 
 | Format | Example | Description |
 | --- | --- | --- |
