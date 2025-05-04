@@ -1,6 +1,6 @@
 # sway-resize
 
-`sway-resize` is a utility to help resize windows more visually on Sway with the use of guidelines.
+`sway-resize` is a utility to help resize windows visually on Sway with the use of guidelines.
 
 [demo.webm](https://github.com/user-attachments/assets/dd4bd7a6-8e15-4b76-a61b-9ebe7b247d61)
 
@@ -31,7 +31,7 @@ sway-resize -g "a:h:25% b:h:33% c:h:50% d:h:66% k:h:75% l:h:85% e:v:25% f:v:33% 
 
 ### From sources
 
-The program can be build from sources with:
+The program can be built from sources with:
 
 ```bash
 meson build
