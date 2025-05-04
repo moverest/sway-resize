@@ -328,10 +328,6 @@ static void handle_surface_enter(
     struct output *output =
         find_output_from_wl_output(&state->outputs, wl_output);
     state->current_output = output;
-
-    if (state->surface_configured) {
-        send_frame(state);
-    }
 }
 
 static const struct wl_surface_listener surface_listener = {
@@ -411,8 +407,10 @@ static void handle_layer_surface_configure(
     state->surface_height = height;
     zwlr_layer_surface_v1_ack_configure(layer_surface, serial);
 
+    if (!state->surface_configured) {
+        send_frame(state);
+    }
     state->surface_configured = true;
-    send_frame(state);
 }
 
 static void handle_layer_surface_closed(
