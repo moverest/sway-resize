@@ -29,6 +29,17 @@ sway-resize -g "a:h:25% b:h:33% c:h:50% d:h:66% k:h:75% l:h:85% e:v:25% f:v:33% 
 
 ## Installation
 
+### Arch Linux
+
+If you are using Arch Linux, you can install the [`sway-resize` AUR package](https://aur.archlinux.org/packages/sway-resize).
+
+You can build and install the package with:
+
+```bash
+curl 'https://aur.archlinux.org/cgit/aur.git/tree/PKGBUILD?h=sway-resize' -O PKGBUILD
+makepkg -si
+```
+
 ### From sources
 
 The program can be built from sources with:
