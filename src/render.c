@@ -72,6 +72,9 @@ void render(struct state *state, cairo_t *cairo) {
     cairo_set_source_u32(cairo, WIN_BG_COLOR);
     cairo_fill(cairo);
 
+    static const double dashes[] = {3.};
+    cairo_set_dash(cairo, dashes, 1, 0);
+
     _render_guide(
         cairo, state->resize_params->vertical_params,
         state->resize_params->num_vertical_params
@@ -80,4 +83,6 @@ void render(struct state *state, cairo_t *cairo) {
         cairo, state->resize_params->horizontal_params,
         state->resize_params->num_horizontal_params
     );
+
+    cairo_set_dash(cairo, NULL, 0, 0);
 }
