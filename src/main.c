@@ -154,16 +154,11 @@ static void handle_keyboard_key(
         uint32_t rune;
         str_to_rune(text, &rune);
 
-        for (int i = 0; i < state->num_resize_params; i++) {
-            struct resize_parameter *param = &state->resize_params[i];
-            if (!param->applicable) {
-                continue;
-            }
-
-            if (param->symbol == rune) {
-                state->selected_resize = i;
-                state->running         = false;
-            }
+        state->selected_resize = find_resize_param_by_symbol(
+            state->resize_params, rune, &state->resize_direction
+        );
+        if (state->selected_resize != NULL) {
+            state->running = false;
         }
     }
 }
@@ -479,7 +474,7 @@ int main(int argc, char **argv) {
         .fractional_scale_mgr = NULL,
         .running              = true,
         .scale_120            = 0,
-        .selected_resize      = -1,
+        .selected_resize      = NULL,
     };
 
     static struct option long_options[] = {
@@ -522,12 +517,11 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    state.num_resize_params =
-        load_resize_parameters(&state.resize_params, guides_string);
+    state.resize_params = load_resize_parameters(guides_string);
     free(guides_string);
 
-    if (state.num_resize_params < 0) {
-        LOG_ERR("Could not load guides.");
+    if (state.resize_params == NULL) {
+        LOG_ERR("Failed to load resize guides");
         return 1;
     }
 
@@ -617,9 +611,9 @@ int main(int argc, char **argv) {
     log_focused_window(&state.focused_window);
 
     resize_parameters_compute_guides(
-        state.resize_params, state.num_resize_params, &state.focused_window
+        state.resize_params, &state.focused_window
     );
-    log_resize_params(state.resize_params, state.num_resize_params);
+    log_resize_params(state.resize_params);
 
     surface_buffer_pool_init(&state.surface_buffer_pool);
 
@@ -686,15 +680,12 @@ int main(int argc, char **argv) {
         free((void *)state.focused_window.output);
     }
 
-    if (state.selected_resize != -1) {
+    if (state.selected_resize != NULL) {
         char cmd[256];
         snprintf(
             cmd, sizeof(cmd) - 1, "resize set %s %dpx",
-            state.resize_params[state.selected_resize].direction ==
-                    RESIZE_VERTICAL
-                ? "height"
-                : "width",
-            state.resize_params[state.selected_resize].size
+            state.resize_direction == RESIZE_VERTICAL ? "height" : "width",
+            state.selected_resize->size
         );
         cmd[sizeof(cmd) - 1] = '\0';
 

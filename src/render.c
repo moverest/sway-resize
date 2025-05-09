@@ -1,7 +1,8 @@
 #include "render.h"
 
-#include "log.h"
 #include "utils_cairo.h"
+
+#include <stddef.h>
 
 #define BG_COLOR              0x00007744
 #define WIN_BG_COLOR          0x00770044
@@ -37,21 +38,11 @@ void _render_line(cairo_t *cairo, struct line *line, char *label) {
     cairo_show_text(cairo, label);
 }
 
-void render(struct state *state, cairo_t *cairo) {
-    cairo_set_operator(cairo, CAIRO_OPERATOR_SOURCE);
-    cairo_set_source_u32(cairo, BG_COLOR);
-    cairo_paint(cairo);
-
-    cairo_rectangle(
-        cairo, state->focused_window.rect.x + .5,
-        state->focused_window.rect.y + .5, state->focused_window.rect.w,
-        state->focused_window.rect.h
-    );
-    cairo_set_source_u32(cairo, WIN_BG_COLOR);
-    cairo_fill(cairo);
-
-    for (int i = 0; i < state->num_resize_params; i++) {
-        struct resize_parameter *param = &state->resize_params[i];
+static void _render_guide(
+    cairo_t *cairo, struct resize_parameter *params, size_t num_params
+) {
+    for (int i = 0; i < num_params; i++) {
+        struct resize_parameter *param = &params[i];
 
         if (!param->applicable) {
             continue;
@@ -66,4 +57,27 @@ void render(struct state *state, cairo_t *cairo) {
             _render_line(cairo, &param->guides[1], symbol);
         }
     }
+}
+
+void render(struct state *state, cairo_t *cairo) {
+    cairo_set_operator(cairo, CAIRO_OPERATOR_SOURCE);
+    cairo_set_source_u32(cairo, BG_COLOR);
+    cairo_paint(cairo);
+
+    cairo_rectangle(
+        cairo, state->focused_window.rect.x + .5,
+        state->focused_window.rect.y + .5, state->focused_window.rect.w,
+        state->focused_window.rect.h
+    );
+    cairo_set_source_u32(cairo, WIN_BG_COLOR);
+    cairo_fill(cairo);
+
+    _render_guide(
+        cairo, state->resize_params->vertical_params,
+        state->resize_params->num_vertical_params
+    );
+    _render_guide(
+        cairo, state->resize_params->horizontal_params,
+        state->resize_params->num_horizontal_params
+    );
 }

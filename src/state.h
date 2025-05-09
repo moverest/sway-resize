@@ -58,10 +58,10 @@ struct state {
     uint32_t                               surface_width;
     bool                                   running;
     bool                                   surface_configured;
-    struct resize_parameter               *resize_params;
-    int                                    num_resize_params;
+    struct resize_parameters              *resize_params;
     struct focused_window                  focused_window;
-    int                                    selected_resize;
+    struct resize_parameter               *selected_resize;
+    enum resize_direction                  resize_direction;
 };
 
 #endif

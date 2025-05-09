@@ -19,14 +19,20 @@ enum resize_direction {
 };
 
 struct resize_parameter {
-    int32_t               value;
-    uint32_t              symbol;
-    struct line           guides[2];
-    enum resize_direction direction;
-    bool                  relative;
-    bool                  percentage;
-    bool                  applicable;
-    uint32_t              size;
+    int32_t     value;
+    uint32_t    symbol;
+    struct line guides[2];
+    bool        relative;
+    bool        percentage;
+    bool        applicable;
+    uint32_t    size;
+};
+
+struct resize_parameters {
+    size_t                   num_horizontal_params;
+    size_t                   num_vertical_params;
+    struct resize_parameter *horizontal_params;
+    struct resize_parameter *vertical_params;
 };
 
 /*
@@ -34,10 +40,15 @@ struct resize_parameter {
  *
  * Example: a:100 b:+100px c:-100px b:50% c:+10%
  */
-int load_resize_parameters(struct resize_parameter **params, char *s);
-int resize_parameters_compute_guides(
-    struct resize_parameter *params, size_t len, struct focused_window *fw
+struct resize_parameters *load_resize_parameters(char *s);
+int                       resize_parameters_compute_guides(
+                          struct resize_parameters *params, struct focused_window *fw
+                      );
+void                     log_resize_params(struct resize_parameters *params);
+struct resize_parameter *find_resize_param_by_symbol(
+    struct resize_parameters *params, uint32_t rune,
+    enum resize_direction *direction
 );
-void log_resize_params(struct resize_parameter *params, int len);
+void free_resize_params(struct resize_parameters *params);
 
 #endif
