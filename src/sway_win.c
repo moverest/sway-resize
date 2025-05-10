@@ -64,6 +64,20 @@ static int _get_rect(json_t *node, struct rect *rect, char *field) {
     return 0;
 }
 
+static int _get_array_node_rect(json_t *array_node, int i, struct rect *rect) {
+    json_t *node = json_array_get(array_node, i);
+    if (node == NULL) {
+        LOG_ERR("'nodes[%d]' not found.", i);
+        return -1;
+    }
+    if (!json_is_object(node)) {
+        LOG_ERR("'nodes[%d]' is not an object.", i);
+        return -1;
+    }
+
+    return _get_rect(node, rect, "rect");
+}
+
 static int _find_focused_window_rec(struct focused_window *fw, json_t *tree) {
 
     if (!json_is_object(tree)) {
@@ -142,24 +156,58 @@ static int _find_focused_window_rec(struct focused_window *fw, json_t *tree) {
         JSON_OBJ_GET_INTEGER(node, id, "id");
         if (id == focused_id) {
             if (node_count > 1 && (type == NULL || (strcmp(type, "root")))) {
-                struct rect container_rect;
+                struct rect container_rect, neighbour_rect;
                 _get_rect(tree, &container_rect, "rect");
 
                 switch (_get_orientation(tree)) {
                 case ORIENTATION_HORIZONTAL:
-                    fw->resize_left       = i > 0;
-                    fw->resize_right      = i < node_count - 1;
-                    fw->resize_left_limit = container_rect.x;
-                    fw->resize_right_limit =
-                        container_rect.x + container_rect.w;
+                    if ((fw->resize_left = (i > 0))) {
+                        if (_get_array_node_rect(
+                                nodes, i - 1, &neighbour_rect
+                            ) != 0) {
+                            return -1;
+                        }
+                        fw->resize_left_limit = neighbour_rect.x;
+                    } else {
+                        fw->resize_left_limit = container_rect.x;
+                    }
+                    if ((fw->resize_right = (i < node_count - 1))) {
+                        if (_get_array_node_rect(
+                                nodes, i + 1, &neighbour_rect
+                            ) != 0) {
+                            return -1;
+                        }
+                        fw->resize_right_limit =
+                            neighbour_rect.x + neighbour_rect.w;
+                    } else {
+                        fw->resize_right_limit =
+                            container_rect.x + container_rect.w;
+                    }
                     break;
 
                 case ORIENTATION_VERTICAL:
-                    fw->resize_top       = i > 0;
-                    fw->resize_bottom    = i < node_count - 1;
-                    fw->resize_top_limit = container_rect.y;
-                    fw->resize_bottom_limit =
-                        container_rect.y + container_rect.h;
+                    if ((fw->resize_top = (i > 0))) {
+                        if (_get_array_node_rect(
+                                nodes, i - 1, &neighbour_rect
+                            ) != 0) {
+                            return -1;
+                        }
+                        fw->resize_top_limit = neighbour_rect.y;
+                    } else {
+                        fw->resize_top_limit = container_rect.y;
+                    }
+                    if ((fw->resize_bottom = (i < node_count - 1))) {
+                        if (_get_array_node_rect(
+                                nodes, i + 1, &neighbour_rect
+                            ) != 0) {
+                            return -1;
+                        }
+                        fw->resize_bottom_limit =
+                            neighbour_rect.y + neighbour_rect.h;
+                    } else {
+                        fw->resize_bottom_limit =
+                            container_rect.y + container_rect.h;
+                    }
                     break;
 
                 default:
