@@ -154,11 +154,12 @@ static void handle_keyboard_key(
         uint32_t rune;
         str_to_rune(text, &rune);
 
-        state->selected_resize = find_resize_param_by_symbol(
+        struct resize_parameter *resize_param = find_resize_param_by_symbol(
             state->resize_params, rune, &state->resize_direction
         );
-        if (state->selected_resize != NULL) {
-            state->running = false;
+        if (resize_param != NULL && resize_param->applicable) {
+            state->selected_resize = resize_param;
+            state->running         = false;
         }
     }
 }
