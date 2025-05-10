@@ -8,7 +8,7 @@
 #define BG_COLOR              0x00003388
 #define WIN_BORDER_COLOR      0x88aa88ee
 #define WIN_BG_COLOR          0x00330088
-#define GUIDE_LINE_COLOR      0xbb9999ee
+#define GUIDE_LINE_COLOR      0xf8d5dbee
 #define GUIDE_LABEL_COLOR     0xeeeeeeff
 #define GUIDE_LABEL_FONT_SIZE 15
 
@@ -139,6 +139,10 @@ static void _render_guides(
 }
 
 void render(struct state *state, cairo_t *cairo) {
+    cairo_select_font_face(
+        cairo, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL
+    );
+
     cairo_set_operator(cairo, CAIRO_OPERATOR_SOURCE);
     cairo_set_source_u32(cairo, BG_COLOR);
     cairo_paint(cairo);
