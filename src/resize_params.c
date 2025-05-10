@@ -232,7 +232,7 @@ static int _resize_parameters_compute_guides(
             guide_pos[0] = NO_GUIDE;
             guide_pos[1] = new_size + pos;
 
-            if (guide_pos[0] > max_limit) {
+            if (guide_pos[1] > max_limit) {
                 param->applicable = false;
                 continue;
             }
