@@ -204,6 +204,11 @@ static int _resize_parameters_compute_guides(
                            : param->value;
         }
 
+        if (new_size == size) {
+            param->applicable = false;
+            continue;
+        }
+
         int32_t guide_pos[2];
 
         if (new_size < 15) {
