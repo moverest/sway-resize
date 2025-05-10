@@ -156,8 +156,6 @@ struct resize_parameters *load_resize_parameters(char *s) {
     return params;
 }
 
-#define NO_GUIDE -1
-
 static int _resize_parameters_compute_guides(
     struct resize_parameter *params, size_t len, struct focused_window *fw,
     enum resize_direction direction
@@ -168,6 +166,8 @@ static int _resize_parameters_compute_guides(
     int32_t resizable_max_dir;
     int32_t size;
     int32_t pos;
+
+    size_t num_applicable = 0;
 
     if (direction == RESIZE_HORIZONTAL) {
         min_limit         = fw->resize_left_limit;
@@ -224,11 +224,12 @@ static int _resize_parameters_compute_guides(
 
              */
 
-            guide_pos[0] = new_size + pos;
-            guide_pos[1] = NO_GUIDE;
+            guide_pos[0] = NO_GUIDE;
+            guide_pos[1] = new_size + pos;
 
             if (guide_pos[0] > max_limit) {
                 param->applicable = false;
+                continue;
             }
 
         } else if (!resizable_max_dir) {
@@ -247,6 +248,7 @@ static int _resize_parameters_compute_guides(
 
             if (guide_pos[0] < min_limit) {
                 param->applicable = false;
+                continue;
             }
         } else {
             /*
@@ -276,92 +278,41 @@ static int _resize_parameters_compute_guides(
             new_size = guide_pos[1] - guide_pos[0];
         }
 
-        param->size = new_size;
-
-        if (direction == RESIZE_HORIZONTAL) {
-            /*
-                  +      +-------------+      +  fw->rect.y
-                  |      |             |      |
-                  |      |             |      |
-                  |      |             |      |
-                  +      +-------------+      +  fw->rect.y + fw.rect.h
-
-                  ^                           ^
-                  guide_pos[0]                guide_pos[1]
-             */
-            param->guides[0].x1 = guide_pos[0];
-            param->guides[0].x2 = guide_pos[0];
-            param->guides[0].y1 = fw->rect.y;
-            param->guides[0].y2 = fw->rect.y + fw->rect.h;
-
-            if (guide_pos[1] == NO_GUIDE) {
-                param->guides[1].x1 = NO_GUIDE;
-            } else {
-                param->guides[1].x1 = guide_pos[1];
-                param->guides[1].x2 = guide_pos[1];
-                param->guides[1].y1 = fw->rect.y;
-                param->guides[1].y2 = fw->rect.y + fw->rect.h;
-            }
-
-        } else { // RESIZE_VERTICAL
-            /*
-                     +-------------+ guide_pos[0]
-
-
-                     +-------------+
-                     |             |
-                     |             |
-                     |             |
-                     +-------------+
-
-
-                     +-------------+ guide_pos[1]
-
-                     ^             ^
-                     fw->rect.x    fw->rect.x + fw->rect.w
-            */
-
-            param->guides[0].x1 = fw->rect.x;
-            param->guides[0].x2 = fw->rect.x + fw->rect.w;
-            param->guides[0].y1 = guide_pos[0];
-            param->guides[0].y2 = guide_pos[0];
-
-            if (guide_pos[1] == NO_GUIDE) {
-                param->guides[1].x1 = NO_GUIDE;
-            } else {
-                param->guides[1].x1 = fw->rect.x;
-                param->guides[1].x2 = fw->rect.x + fw->rect.w;
-                param->guides[1].y1 = guide_pos[1];
-                param->guides[1].y2 = guide_pos[1];
-            }
-        }
-
+        param->size       = new_size;
+        param->guides[0]  = guide_pos[0];
+        param->guides[1]  = guide_pos[1];
         param->applicable = true;
+
+        num_applicable++;
     }
 
-    return 0;
+    return num_applicable;
 }
 
 int resize_parameters_compute_guides(
     struct resize_parameters *params, struct focused_window *fw
 ) {
-    return (
+    params->num_applicable_horizontal_params =
         _resize_parameters_compute_guides(
             params->horizontal_params, params->num_horizontal_params, fw,
             RESIZE_HORIZONTAL
-        ) ||
-        _resize_parameters_compute_guides(
-            params->vertical_params, params->num_vertical_params, fw,
-            RESIZE_VERTICAL
-        )
+        );
+    params->num_applicable_vertical_params = _resize_parameters_compute_guides(
+        params->vertical_params, params->num_vertical_params, fw,
+        RESIZE_VERTICAL
     );
+
+    return params->num_applicable_vertical_params < 0 ||
+           params->num_applicable_horizontal_params < 0;
 }
 
 static void
 _log_resize_params(struct resize_parameter *params, int len, char *name) {
     for (int i = 0; i < len; i++) {
+        char symbol[5];
+        rune_to_str(params[i].symbol, symbol);
         LOG_INFO("%s[%d]", name, i);
-        LOG_INFO(" .symbol = %d", params[i].symbol);
+        LOG_INFO(" .symbol = %s (%d)", symbol, params[i].symbol);
         LOG_INFO(" .value = %d", params[i].value);
         LOG_INFO(" .relative = %s", params[i].relative ? "true" : "false");
         LOG_INFO(" .percentage = %s", params[i].percentage ? "true" : "false");
@@ -369,20 +320,8 @@ _log_resize_params(struct resize_parameter *params, int len, char *name) {
 
         if (params[i].applicable) {
             LOG_INFO("  .size = %d", params[i].size);
-            LOG_INFO(
-                "  .guides[0] = %d,%d %d,%d", params[i].guides[0].x1,
-                params[i].guides[0].y1, params[i].guides[0].x2,
-                params[i].guides[0].y2
-            );
-            if (params[i].guides[1].x1 < 0) {
-                LOG_INFO("  .guides[1] = n/a");
-            } else {
-                LOG_INFO(
-                    "  .guides[1] = %d,%d %d,%d", params[i].guides[1].x1,
-                    params[i].guides[1].y1, params[i].guides[1].x2,
-                    params[i].guides[1].y2
-                );
-            }
+            LOG_INFO("  .guides[0] = %d", params[i].guides[0]);
+            LOG_INFO("  .guides[1] = %d", params[i].guides[1]);
         }
     }
 }
