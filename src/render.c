@@ -6,6 +6,7 @@
 #include <stddef.h>
 
 #define BG_COLOR              0x00003388
+#define WIN_BORDER_COLOR      0x88aa88ee
 #define WIN_BG_COLOR          0x00330088
 #define GUIDE_LINE_COLOR      0xbb9999ee
 #define GUIDE_LABEL_COLOR     0xeeeeeeff
@@ -114,7 +115,8 @@ static void _render_guides(
             }
             if (param->guides[1] != NO_GUIDE) {
                 _render_vertical_guide(
-                    cairo, pos, focused_window->rect.y + focused_window->rect.h,
+                    cairo, pos,
+                    focused_window->rect.y + focused_window->rect.h - 1,
                     param->guides[1], label
                 );
             }
@@ -126,7 +128,8 @@ static void _render_guides(
             }
             if (param->guides[1] != NO_GUIDE) {
                 _render_horizontal_guide(
-                    cairo, pos, focused_window->rect.x + focused_window->rect.w,
+                    cairo, pos,
+                    focused_window->rect.x + focused_window->rect.w - 1,
                     param->guides[1], label
                 );
             }
@@ -159,4 +162,13 @@ void render(struct state *state, cairo_t *cairo) {
         RESIZE_HORIZONTAL,
         state->resize_params->num_applicable_horizontal_params
     );
+
+    cairo_set_line_width(cairo, 1);
+    cairo_rectangle(
+        cairo, state->focused_window.rect.x + .5,
+        state->focused_window.rect.y + .5, state->focused_window.rect.w - 1,
+        state->focused_window.rect.h - 1
+    );
+    cairo_set_source_u32(cairo, WIN_BORDER_COLOR);
+    cairo_stroke(cairo);
 }
