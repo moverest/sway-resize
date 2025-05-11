@@ -231,7 +231,7 @@ static int _find_focused_window_rec(struct focused_window *fw, json_t *tree) {
         return -1;
     }
 
-    int floating_nodes_count = json_array_size(nodes);
+    int floating_nodes_count = json_array_size(floating_nodes);
     for (int i = 0; i < floating_nodes_count; i++) {
         json_t *node = json_array_get(floating_nodes, i);
         if (node == NULL) {
