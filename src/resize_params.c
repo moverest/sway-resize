@@ -204,7 +204,7 @@ static int _resize_parameters_compute_guides(
                            : param->value;
         }
 
-        if (new_size == size) {
+        if (abs(new_size - size) < 2) {
             param->applicable = false;
             continue;
         }
