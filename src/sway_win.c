@@ -165,6 +165,7 @@ static int _find_focused_window_rec(struct focused_window *fw, json_t *tree) {
                         if (_get_array_node_rect(
                                 nodes, i - 1, &neighbour_rect
                             ) != 0) {
+                            LOG_ERR("Could not get left neighbour rect.");
                             return -1;
                         }
                         fw->resize_left_limit = neighbour_rect.x;
@@ -175,6 +176,7 @@ static int _find_focused_window_rec(struct focused_window *fw, json_t *tree) {
                         if (_get_array_node_rect(
                                 nodes, i + 1, &neighbour_rect
                             ) != 0) {
+                            LOG_ERR("Could not get right neighbour rect.");
                             return -1;
                         }
                         fw->resize_right_limit =
@@ -190,6 +192,7 @@ static int _find_focused_window_rec(struct focused_window *fw, json_t *tree) {
                         if (_get_array_node_rect(
                                 nodes, i - 1, &neighbour_rect
                             ) != 0) {
+                            LOG_ERR("Could not get top neighbour rect.");
                             return -1;
                         }
                         fw->resize_top_limit = neighbour_rect.y;
@@ -200,6 +203,7 @@ static int _find_focused_window_rec(struct focused_window *fw, json_t *tree) {
                         if (_get_array_node_rect(
                                 nodes, i + 1, &neighbour_rect
                             ) != 0) {
+                            LOG_ERR("Could not get bottom neighbour rect.");
                             return -1;
                         }
                         fw->resize_bottom_limit =
