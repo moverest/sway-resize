@@ -108,7 +108,18 @@ static int _find_focused_window_rec(struct focused_window *fw, json_t *tree) {
     if (focused != NULL && json_is_true(focused)) {
         JSON_OBJ_GET_INTEGER(tree, id, "id");
         fw->id = id;
-        return _get_rect(tree, &fw->rect, "rect");
+        struct rect deco_rect;
+        int         err = _get_rect(tree, &fw->rect, "rect");
+        if (err != 0) {
+            return err;
+        }
+        err = _get_rect(tree, &deco_rect, "deco_rect");
+        if (err != 0) {
+            return err;
+        }
+        fw->rect.h += deco_rect.h;
+        fw->rect.y -= deco_rect.h;
+        return 0;
     }
 
     json_t *focus = json_object_get(tree, "focus");
