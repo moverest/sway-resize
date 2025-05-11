@@ -5,7 +5,7 @@
 
 #include <stddef.h>
 
-#define BG_COLOR              0x00003388
+#define BG_COLOR              0x11111188
 #define WIN_BORDER_COLOR      0x88aa88ee
 #define WIN_BG_COLOR          0x00330088
 #define GUIDE_LINE_COLOR      0xf8d5dbee
