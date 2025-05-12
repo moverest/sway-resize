@@ -1,5 +1,6 @@
 #include "log.h"
 #include "resize_params.h"
+#include "utils.h"
 
 #include <stdlib.h>
 
@@ -38,29 +39,46 @@ int main() {
     };
 
     static const struct resize_parameters expect_params = {
-        .vertical_params = (struct resize_parameter *)expected_vertical_params,
-        .horizontal_params =
-            (struct resize_parameter *)expected_horizontal_params,
-        .num_vertical_params =
-            sizeof(expected_vertical_params) / sizeof(struct resize_parameter),
-        .num_horizontal_params = sizeof(expected_horizontal_params) /
-                                 sizeof(struct resize_parameter),
+        .params =
+            {
+                [RESIZE_HORIZONTAL] =
+                    (struct resize_parameter *)expected_horizontal_params,
+                [RESIZE_VERTICAL] =
+                    (struct resize_parameter *)expected_horizontal_params,
+                [RESIZE_RIGHT]  = NULL,
+                [RESIZE_LEFT]   = NULL,
+                [RESIZE_TOP]    = NULL,
+                [RESIZE_BOTTOM] = NULL,
+            },
+        .counts =
+            {
+                [RESIZE_HORIZONTAL] = ARRAY_LEN(expected_horizontal_params),
+                [RESIZE_VERTICAL]   = ARRAY_LEN(expected_vertical_params),
+                [RESIZE_RIGHT]      = 0,
+                [RESIZE_LEFT]       = 0,
+                [RESIZE_TOP]        = 0,
+                [RESIZE_BOTTOM]     = 0,
+            },
     };
 
-    if (params->num_vertical_params != expect_params.num_vertical_params) {
-        LOG_ERR("Wrong size %zu.", params->num_vertical_params);
-        return 1;
-    }
+    for (int direction = 0; direction < NUM_DIRECTIONS; direction++) {
+        if (params->counts[direction] != expect_params.counts[direction]) {
+            LOG_ERR(
+                "Wrong size for params[%s]: %zu. Expected %zu",
+                resize_direction_to_str(direction), params->counts[direction],
+                expect_params.counts[direction]
+            );
+            return 1;
+        }
 
-    if (params->num_horizontal_params != expect_params.num_horizontal_params) {
-        LOG_ERR("Wrong size %zu.", params->num_horizontal_params);
-        return 1;
-    }
-
-#define CHECK_FIELD(params, expected_params, field)                            \
-    if (params[i].field != expected_params[i].field) {                         \
-        LOG_ERR("%s[%d].%s = %d wrong.", #params, i, #field, params[i].field); \
-        return 2;                                                              \
+#define CHECK_FIELD(params, expected_params, field)      \
+    if (params->params[direction][i].field !=            \
+        expected_params->params[direction][i].field) {   \
+        LOG_ERR(                                         \
+            "%s[%d].%s = %d wrong.", #params, i, #field, \
+            params->params[direction][i].field           \
+        );                                               \
+        return 2;                                        \
     }
 
 #define CHECK_PARAMS(params, expected_params, len)        \
@@ -70,15 +88,7 @@ int main() {
         CHECK_FIELD(params, expected_params, relative);   \
         CHECK_FIELD(params, expected_params, percentage); \
     }
-
-    CHECK_PARAMS(
-        params->vertical_params, expected_vertical_params,
-        params->num_vertical_params
-    );
-    CHECK_PARAMS(
-        params->horizontal_params, expected_horizontal_params,
-        params->num_horizontal_params
-    );
+    }
 
     free_resize_params(params);
     return 0;

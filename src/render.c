@@ -156,15 +156,16 @@ void render(struct state *state, cairo_t *cairo) {
     cairo_fill(cairo);
 
     _render_guides(
-        cairo, state->resize_params->vertical_params,
-        state->resize_params->num_vertical_params, &state->focused_window,
-        RESIZE_VERTICAL, state->resize_params->num_applicable_vertical_params
+        cairo, state->resize_params->params[RESIZE_VERTICAL],
+        state->resize_params->counts[RESIZE_VERTICAL], &state->focused_window,
+        RESIZE_VERTICAL,
+        state->resize_params->applicable_counts[RESIZE_VERTICAL]
     );
     _render_guides(
-        cairo, state->resize_params->horizontal_params,
-        state->resize_params->num_horizontal_params, &state->focused_window,
+        cairo, state->resize_params->params[RESIZE_HORIZONTAL],
+        state->resize_params->counts[RESIZE_HORIZONTAL], &state->focused_window,
         RESIZE_HORIZONTAL,
-        state->resize_params->num_applicable_horizontal_params
+        state->resize_params->applicable_counts[RESIZE_HORIZONTAL]
     );
 
     cairo_set_line_width(cairo, 1);

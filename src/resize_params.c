@@ -21,14 +21,24 @@ static int _load_resize_param_from_token(
     p++;
 
     switch (*p) {
+    case 't':
+        *direction = RESIZE_TOP;
+        break;
+    case 'b':
+        *direction = RESIZE_BOTTOM;
+        break;
+    case 'l':
+        *direction = RESIZE_LEFT;
+        break;
+    case 'r':
+        *direction = RESIZE_RIGHT;
+        break;
     case 'h':
         *direction = RESIZE_HORIZONTAL;
         break;
-
     case 'v':
         *direction = RESIZE_VERTICAL;
         break;
-
     default:
         return 2;
     }
@@ -93,14 +103,12 @@ struct resize_parameters *load_resize_parameters(char *s) {
     strcpy(buf, s);
     buf[s_len] = '\0';
 
-    size_t vcap = 8;
-    size_t hcap = 8;
-
-    params->vertical_params   = malloc(sizeof(struct resize_parameter) * vcap);
-    params->horizontal_params = malloc(sizeof(struct resize_parameter) * hcap);
-
-    params->num_vertical_params   = 0;
-    params->num_horizontal_params = 0;
+    size_t caps[NUM_DIRECTIONS];
+    for (int i = 0; i < NUM_DIRECTIONS; i++) {
+        caps[i]           = 0;
+        params->params[i] = NULL;
+        params->counts[i] = 0;
+    }
 
     char *strtok_p;
 
@@ -115,44 +123,33 @@ struct resize_parameters *load_resize_parameters(char *s) {
             return NULL;
         }
 
-        if (direction == RESIZE_VERTICAL) {
-            if (vcap < params->num_vertical_params + 1) {
-                vcap                    *= 1.5;
-                params->vertical_params  = realloc(
-                    params->vertical_params,
-                    sizeof(struct resize_parameter) * vcap
-                );
-            }
-            memcpy(
-                &params->vertical_params[params->num_vertical_params++], &param,
-                sizeof(struct resize_parameter)
-            );
-        } else {
-            if (hcap < params->num_horizontal_params + 1) {
-                hcap                      *= 1.5;
-                params->horizontal_params  = realloc(
-                    params->horizontal_params,
-                    sizeof(struct resize_parameter) * hcap
-                );
-            }
-            memcpy(
-                &params->horizontal_params[params->num_horizontal_params++],
-                &param, sizeof(struct resize_parameter)
+        if (caps[direction] == 0) {
+            caps[direction] = 8;
+            params->params[direction] =
+                malloc(sizeof(struct resize_parameter) * caps[direction]);
+        } else if (caps[direction] < params->counts[direction] + 1) {
+            caps[direction]           *= 1.5;
+            params->params[direction]  = realloc(
+                params->params[direction],
+                sizeof(struct resize_parameter) * caps[direction]
             );
         }
+        memcpy(
+            &params->params[direction][params->counts[direction]++], &param,
+            sizeof(struct resize_parameter)
+        );
 
         token = strtok_r(NULL, delims, &strtok_p);
     }
 
-    params->vertical_params = realloc(
-        params->vertical_params,
-        sizeof(struct resize_parameter) * params->num_vertical_params
-    );
-    params->horizontal_params = realloc(
-        params->horizontal_params,
-        sizeof(struct resize_parameter) * params->num_horizontal_params
-    );
-
+    for (int i = 0; i < NUM_DIRECTIONS; i++) {
+        if (params->params[i] != NULL) {
+            params->params[i] = realloc(
+                params->params[i],
+                sizeof(struct resize_parameter) * params->counts[i]
+            );
+        }
+    }
     return params;
 }
 
@@ -297,26 +294,32 @@ static int _resize_parameters_compute_guides(
 int resize_parameters_compute_guides(
     struct resize_parameters *params, struct focused_window *fw
 ) {
-    params->num_applicable_horizontal_params =
+    params->applicable_counts[RESIZE_HORIZONTAL] =
         _resize_parameters_compute_guides(
-            params->horizontal_params, params->num_horizontal_params, fw,
-            RESIZE_HORIZONTAL
+            params->params[RESIZE_HORIZONTAL],
+            params->counts[RESIZE_HORIZONTAL], fw, RESIZE_HORIZONTAL
         );
-    params->num_applicable_vertical_params = _resize_parameters_compute_guides(
-        params->vertical_params, params->num_vertical_params, fw,
-        RESIZE_VERTICAL
-    );
+    params->applicable_counts[RESIZE_VERTICAL] =
+        _resize_parameters_compute_guides(
+            params->params[RESIZE_VERTICAL], params->counts[RESIZE_VERTICAL],
+            fw, RESIZE_VERTICAL
+        );
 
-    return params->num_applicable_vertical_params < 0 ||
-           params->num_applicable_horizontal_params < 0;
+    return params->applicable_counts[RESIZE_VERTICAL] < 0 ||
+           params->applicable_counts[RESIZE_HORIZONTAL] < 0;
 }
 
 static void
-_log_resize_params(struct resize_parameter *params, int len, char *name) {
+_log_resize_params(struct resize_parameter *params, int len, const char *name) {
+    if (len == 0) {
+        LOG_INFO("params[%s] = []", name);
+        return;
+    }
+
     for (int i = 0; i < len; i++) {
         char symbol[5];
         rune_to_str(params[i].symbol, symbol);
-        LOG_INFO("%s[%d]", name, i);
+        LOG_INFO("params[%s][%d]", name, i);
         LOG_INFO(" .symbol = %s (%d)", symbol, params[i].symbol);
         LOG_INFO(" .value = %d", params[i].value);
         LOG_INFO(" .relative = %s", params[i].relative ? "true" : "false");
@@ -331,31 +334,42 @@ _log_resize_params(struct resize_parameter *params, int len, char *name) {
     }
 }
 
+const char *resize_direction_to_str(enum resize_direction direction) {
+    const static char *invalid_str = "RESIZE_DIRECTION_INVALID";
+    if (direction < 0 || direction >= NUM_DIRECTIONS) {
+        return invalid_str;
+    }
+
+#define DIR_STR(dir) [dir] = #dir
+
+    const static char *direction_strs[NUM_DIRECTIONS] = {
+        DIR_STR(RESIZE_TOP),        DIR_STR(RESIZE_BOTTOM),
+        DIR_STR(RESIZE_LEFT),       DIR_STR(RESIZE_RIGHT),
+        DIR_STR(RESIZE_HORIZONTAL), DIR_STR(RESIZE_VERTICAL),
+    };
+
+    return direction_strs[direction];
+}
+
 void log_resize_params(struct resize_parameters *params) {
-    _log_resize_params(
-        params->vertical_params, params->num_vertical_params, "vertical_params"
-    );
-    _log_resize_params(
-        params->horizontal_params, params->num_horizontal_params,
-        "horizontal_params"
-    );
+    for (int direction = 0; direction < NUM_DIRECTIONS; direction++) {
+        _log_resize_params(
+            params->params[direction], params->counts[direction],
+            resize_direction_to_str(direction)
+        );
+    }
 }
 
 struct resize_parameter *find_resize_param_by_symbol(
     struct resize_parameters *params, uint32_t rune,
-    enum resize_direction *direction
+    enum resize_direction *out_direction
 ) {
-    for (int i = 0; i < params->num_vertical_params; i++) {
-        if (params->vertical_params[i].symbol == rune) {
-            *direction = RESIZE_VERTICAL;
-            return &params->vertical_params[i];
-        }
-    }
-
-    for (int i = 0; i < params->num_horizontal_params; i++) {
-        if (params->horizontal_params[i].symbol == rune) {
-            *direction = RESIZE_HORIZONTAL;
-            return &params->horizontal_params[i];
+    for (int direction = 0; direction < NUM_DIRECTIONS; direction++) {
+        for (int i = 0; i < params->counts[direction]; i++) {
+            if (params->params[direction][i].symbol == rune) {
+                *out_direction = direction;
+                return &params->params[direction][i];
+            }
         }
     }
 
@@ -363,7 +377,10 @@ struct resize_parameter *find_resize_param_by_symbol(
 }
 
 void free_resize_params(struct resize_parameters *params) {
-    free(params->vertical_params);
-    free(params->horizontal_params);
+    for (int direction = 0; direction < NUM_DIRECTIONS; direction++) {
+        if (params->params[direction] != NULL) {
+            free(params->params[direction]);
+        }
+    }
     free(params);
 }

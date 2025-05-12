@@ -7,11 +7,16 @@
 #include <stdint.h>
 
 enum resize_direction {
-    RESIZE_VERTICAL,
-    RESIZE_HORIZONTAL,
+    RESIZE_LEFT       = 0,
+    RESIZE_RIGHT      = 1,
+    RESIZE_TOP        = 2,
+    RESIZE_BOTTOM     = 3,
+    RESIZE_VERTICAL   = 4,
+    RESIZE_HORIZONTAL = 5,
 };
 
-#define NO_GUIDE -1
+#define NUM_DIRECTIONS 6
+#define NO_GUIDE       -1
 
 struct resize_parameter {
     int32_t  value;
@@ -24,13 +29,12 @@ struct resize_parameter {
 };
 
 struct resize_parameters {
-    size_t                   num_horizontal_params;
-    size_t                   num_vertical_params;
-    struct resize_parameter *horizontal_params;
-    struct resize_parameter *vertical_params;
-    size_t                   num_applicable_horizontal_params;
-    size_t                   num_applicable_vertical_params;
+    struct resize_parameter *params[NUM_DIRECTIONS];
+    size_t                   counts[NUM_DIRECTIONS];
+    size_t                   applicable_counts[NUM_DIRECTIONS];
 };
+
+const char *resize_direction_to_str(enum resize_direction direction);
 
 /*
  * Load the resize parameters from a string.

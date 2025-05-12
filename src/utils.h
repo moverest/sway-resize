@@ -25,4 +25,6 @@ int str_index(char *s, uint32_t rune);
 
 int rune_to_str(uint32_t rune, char *s);
 
+#define ARRAY_LEN(array) sizeof(array) / sizeof(array[0])
+
 #endif
